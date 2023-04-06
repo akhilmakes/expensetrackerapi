@@ -2,7 +2,9 @@ package com.restapi.expensetracker.repositories;
 
 import com.restapi.expensetracker.domain.User;
 import com.restapi.expensetracker.exceptions.EtAuthException;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -19,12 +21,18 @@ public class UserRepositoryImpl implements UserRepository{
             " VALUES(NEXTVAL('ET_USERS_SEQ'), ?, ?, ?, ?)";
     private static final String SQL_COUNT_BY_EMAIL = "SELECT COUNT(*) FROM ET_USERS WHERE EMAIL = ?";
     private static final String SQL_FIND_BY_ID = "SELECT USER_ID, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD FROM ET_USERS" +
-            "WHERE USER_ID = ?";
+            " WHERE USER_ID = ?";
+
+    private static final String SQL_FIND_BY_EMAIL = "SELECT USER_ID, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD " +
+            "FROM ET_USERS WHERE EMAIL = ?";
 
     @Autowired
     JdbcTemplate jdbcTemplate;
     @Override
     public Integer create(String firstName, String lastName, String email, String password) throws EtAuthException {
+
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(10));
+
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
@@ -32,7 +40,7 @@ public class UserRepositoryImpl implements UserRepository{
                 ps.setString(1, firstName);
                 ps.setString(2, lastName);
                 ps.setString(3, email);
-                ps.setString(4, password);
+                ps.setString(4, hashedPassword);
                 return ps;
             }, keyHolder);
 
@@ -45,7 +53,16 @@ public class UserRepositoryImpl implements UserRepository{
 
     @Override
     public User findByEmailAndPassword(String email, String password) throws EtAuthException {
-        return null;
+        try {
+            User user =  jdbcTemplate.queryForObject(SQL_FIND_BY_EMAIL, new Object[]{email}, userRowMapper);
+            if(!BCrypt.checkpw(password, user.getPassword())){
+                throw new EtAuthException("Invalid email/password");
+            }
+            return user;
+        } catch (EmptyResultDataAccessException e){
+            throw new EtAuthException("Invalid email/password");
+        }
+
     }
 
     @Override
