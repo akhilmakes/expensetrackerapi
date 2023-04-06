@@ -40,7 +40,7 @@ public class AuthFilter extends GenericFilterBean {
 
             }
         } else {
-            httpResponse.sendError(HttpStatus.FORBIDDEN.value(), "Authorization Token must br included");
+            httpResponse.sendError(HttpStatus.FORBIDDEN.value(), "Authorization Token must be included");
             return;
         }
         filterChain.doFilter(servletRequest, servletResponse);
