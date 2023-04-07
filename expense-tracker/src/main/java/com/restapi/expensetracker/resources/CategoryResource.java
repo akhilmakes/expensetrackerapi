@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,10 +20,11 @@ public class CategoryResource {
     CategoryService categoryService;
 
     @GetMapping("")
-    public String getAllCategories(HttpServletRequest request){
+    public ResponseEntity<List<Category>> getAllCategories(HttpServletRequest request){
         int userId = (Integer) request.getAttribute("userId");
+        List<Category> categories = categoryService.fetchAllCategories(userId);
 
-        return "Authenticated! userId: "+ userId;
+        return new ResponseEntity<>(categories, HttpStatus.OK);
 
     }
 
@@ -44,5 +47,18 @@ public class CategoryResource {
 
         return new ResponseEntity<>(category, HttpStatus.CREATED);
 
+    }
+
+    @PutMapping("/{categoryId}")
+    public ResponseEntity<Map<String, Boolean>> updateCategory(HttpServletRequest request,
+                                                               @PathVariable Integer categoryId,
+                                                               @RequestBody Category category){
+
+        int userId = (Integer) request.getAttribute("userId");
+        categoryService.updateCategory(categoryId, userId, category);
+        Map<String, Boolean> map = new HashMap<>();
+        map.put("Success", true);
+
+        return new ResponseEntity<>(map, HttpStatus.OK);
     }
 }
