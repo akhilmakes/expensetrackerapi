@@ -5,6 +5,7 @@ import com.restapi.expensetracker.exceptions.EtBadRequestException;
 import com.restapi.expensetracker.exceptions.EtResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
@@ -16,9 +17,14 @@ import java.util.List;
 @Repository
 public class CategoryRepositoryImpl implements CategoryRepository{
 
+
+    private static final String SQL_FIND_BY_ID = "SELECT C.CATEGORY_ID, C.USER_ID, C.TITLE, C.DESCRIPTION, " +
+            "COALESCE(SUM(T.AMOUNT), 0) TOTAL_EXPENSE " +
+            "FROM ET_TRANSACTIONS T RIGHT OUTER JOIN ET_CATEGORIES C ON C.CATEGORY_ID = T.CATEGORY_ID " +
+            "WHERE C.USER_ID = ? AND C.CATEGORY_ID = ? GROUP BY C.CATEGORY_ID";
+
     private static final String SQL_CREATE = "INSERT INTO ET_CATEGORIES (CATEGORY_ID, USER_ID, TITLE, DESCRIPTION) " +
             "VALUES(NEXTVAL('ET_CATEGORIES_SEQ'), ?, ?, ?)";
-    private static final String SQL_UPDATE = "UPDATE ET_CATEGORIES SET TITLE = ?, DESCRIPTION = ? WHERE CATEGORY_ID = ?";
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -29,7 +35,13 @@ public class CategoryRepositoryImpl implements CategoryRepository{
 
     @Override
     public Category findById(Integer userId, Integer categoryId) throws EtResourceNotFoundException {
-        return null;
+        try {
+
+            return jdbcTemplate.queryForObject(SQL_FIND_BY_ID, new Object[]{userId, categoryId}, categoryRowmapper);
+
+        } catch(Exception e){
+            throw new EtResourceNotFoundException("Category Not Found");
+        }
     }
 
     @Override
@@ -55,22 +67,6 @@ public class CategoryRepositoryImpl implements CategoryRepository{
     @Override
     public void update(Integer userId, Integer categoryId, Category category) throws EtBadRequestException {
 
-        try {
-            KeyHolder keyHolder = new GeneratedKeyHolder();
-            jdbcTemplate.update(connection -> {
-
-                PreparedStatement ps = connection.prepareStatement(SQL_UPDATE, Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, category.getTitle());
-                ps.setString(2, category.getDescription());
-                ps.setInt(3, categoryId);
-
-                return ps;
-
-            }, keyHolder);
-
-        } catch (Exception e){
-            throw new EtBadRequestException("Invalid Details");
-        }
 
     }
 
@@ -78,4 +74,13 @@ public class CategoryRepositoryImpl implements CategoryRepository{
     public void deleteById(Integer userId, Integer categoryId) {
 
     }
+
+    private RowMapper<Category> categoryRowmapper =((rs, rowNum) -> {
+        return new Category(
+                rs.getInt("CATEGORY_ID"),
+                rs.getInt("USER_ID"),
+                rs.getString("TITLE"),
+                rs.getString("DESCRIPTION"),
+                rs.getDouble("TOTAL_EXPENSE"));
+    });
 }
