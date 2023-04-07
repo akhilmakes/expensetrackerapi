@@ -22,7 +22,8 @@ public class CategoryServiceImpl implements CategoryService{
 
     @Override
     public Category fetchCategoryById(Integer userId, Integer categoryId) throws EtResourceNotFoundException {
-        return null;
+
+        return categoryRepository.findById(userId, categoryId);
     }
 
     @Override
