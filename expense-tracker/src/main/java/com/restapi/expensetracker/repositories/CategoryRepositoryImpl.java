@@ -32,6 +32,10 @@ public class CategoryRepositoryImpl implements CategoryRepository{
     private static final String SQL_UPDATE = "UPDATE ET_CATEGORIES SET TITLE = ?, DESCRIPTION = ? " +
             "WHERE USER_ID = ? AND CATEGORY_ID = ?";
 
+    private static final String SQL_DELETE_CATEGORY = "DELETE FROM ET_CATEGORIES WHERE USER_ID = ? AND CATEGORY_ID = ?";
+
+    private static final String SQL_DELETE_ALL_TRANSACTIONS = "DELETE FROM ET_TRANSACTIONS WHERE CATEGORY_ID = ?";
+
     @Autowired
     JdbcTemplate jdbcTemplate;
     @Override
@@ -88,7 +92,15 @@ public class CategoryRepositoryImpl implements CategoryRepository{
     @Override
     public void deleteById(Integer userId, Integer categoryId) {
 
+        this.deleteAllCategoryTransactions(categoryId);
+        jdbcTemplate.update(SQL_DELETE_CATEGORY, new Object[]{userId, categoryId});
+
     }
+
+    private void deleteAllCategoryTransactions(Integer categoryId){
+        jdbcTemplate.update(SQL_DELETE_ALL_TRANSACTIONS, new Object[]{categoryId});
+    }
+
 
     private RowMapper<Category> categoryRowMapper =((rs, rowNum) -> {
         return new Category(

@@ -74,4 +74,17 @@ public class TransactionResource {
 
     }
 
+    @DeleteMapping("/{transactionId}")
+    ResponseEntity<Map<String, Boolean>> deleteTransaction(HttpServletRequest request,
+                                                           @PathVariable("categoryId") Integer categoryId,
+                                                           @PathVariable("transactionId") Integer transactionId){
+        int userId = (Integer) request.getAttribute("userId");
+        transactionService.removeTransaction(userId,categoryId,transactionId);
+
+        Map<String, Boolean> map = new HashMap<>();
+        map.put("Success", true);
+
+        return new ResponseEntity<>(map, HttpStatus.OK);
+    }
+
 }
